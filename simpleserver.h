@@ -3,6 +3,7 @@
 
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QUrl>
 #include <QDebug>
 
 #include "database.h"
