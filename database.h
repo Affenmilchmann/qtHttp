@@ -17,6 +17,7 @@ public:
 
 private:
     QMap<int, QString> db;
+    QString history = "<b>Changelog</b><br>";
     int last_id = 0;
 };
 
