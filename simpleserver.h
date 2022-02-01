@@ -25,6 +25,7 @@ private:
     void apiHandler(QMap<QString, QString> *data, QTcpSocket *socket);
 
     void formRequestBodyMap(QMap<QString, QString> *data, QByteArray body);
+    QMap<QString, QString> getArgsFromString(QString str);
 
     void doResponse(int code, QString text, QTcpSocket *socket);
 };

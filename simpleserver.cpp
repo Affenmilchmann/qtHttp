@@ -11,7 +11,7 @@ SimpleServer::SimpleServer(QObject *parent) : QTcpServer(parent)
     db.add("first test value");
     db.add("second test value");
     db.add("batman is cool");
-    db.add("ive changed my mind spiderman is superiour");
+    db.add("ive changed my mind spiderman is superior");
 }
 
 void SimpleServer::incomingConnection(qintptr handle) {
@@ -31,10 +31,10 @@ void SimpleServer::onReadyRead() {
     QMap<QString, QString> data;
     formRequestBodyMap(&data, socket->readAll());
 
-    if (data["Url"] == "/test") {
+    if (data["Url"].startsWith("/test")) {
         doResponse(200, db.formHtmlData(), socket);
     }
-    else if (data["Url"] == "/api") {
+    else if (data["Url"].startsWith("/api")) {
         apiHandler(&data, socket);
     }
     else {
@@ -50,31 +50,72 @@ void SimpleServer::onDisconnected() {
     socket->deleteLater();
 }
 
+bool idValidation(QString id) {
+    int int_id = id.toInt();
+
+    if (id != "0" && int_id == 0)
+        return false;
+
+    return true;
+}
+
 void SimpleServer::apiHandler(QMap<QString, QString> *data, QTcpSocket *socket) {
-    if (data->value("Body") == "") {
-        doResponse(400, "Missing args", socket);
-        return;
-    }
-    doResponse(200, "Not ready yet", socket);
-
-    QStringList var_list = data->value("Body").split("&");
-    QMap<QString, QString> vars;
-
-    qDebug() << "Body variables:";
-    for (QString it : var_list) {
-        QStringList temp = it.split("=");
-        vars[temp[0]] = temp[1];
-        qDebug() << temp[0] << " : " << temp[1];
-    }
+    QMap<QString, QString> body_args = getArgsFromString(data->value("Body"));
+    QMap<QString, QString> url_args = getArgsFromString(data->value("Url"));
 
     QString method = data->value("Method");
-    if (method == "GET") {
-        if (!vars.contains("id")) {
+    if (method == "POST") {
+        if (!body_args.contains("val")) {
             doResponse(400, "Missing args", socket);
             return;
         }
-        doResponse(200, db.getById(vars[]), socket);
+        doResponse(200, QString::number(db.add(body_args["val"])), socket);
     }
+    else if (method == "GET") {
+        if (!url_args.contains("id")) {
+            doResponse(400, "Missing args", socket);
+            return;
+        }
+
+        if (idValidation(url_args["id"])) {
+            QString resp = db.getById(url_args["id"].toInt());
+            if (resp == "") doResponse(400, "Invalid id", socket);
+            else doResponse(200, resp, socket);
+        }
+        else
+            doResponse(400, "Invalid id", socket);
+    }
+    else if (method == "PUT") {
+        if (!body_args.contains("id") || !body_args.contains("val")) {
+            doResponse(400, "Missing args", socket);
+            return;
+        }
+
+        if (idValidation(body_args["id"])) {
+            QString resp = db.edit(body_args["id"].toInt(), body_args["val"]);
+            if (resp == "") doResponse(400, "Invalid id", socket);
+            else doResponse(200, resp, socket);
+        }
+        else
+            doResponse(400, "Invalid id", socket);
+    }
+    else if (method == "DELETE") {
+        if (!body_args.contains("id")) {
+            doResponse(400, "Missing args", socket);
+            return;
+        }
+
+        if (idValidation(body_args["id"])) {
+            if (db.deleteById(body_args["id"].toInt()))
+                doResponse(200, "deleted", socket);
+            else
+                doResponse(400, "Invalid id", socket);
+        }
+        else
+            doResponse(400, "Invalid id", socket);
+    }
+    else
+        doResponse(400, "Invalid method", socket);
 }
 
 void SimpleServer::formRequestBodyMap(QMap<QString, QString> *data, QByteArray body) {
@@ -94,6 +135,26 @@ void SimpleServer::formRequestBodyMap(QMap<QString, QString> *data, QByteArray b
     }
     else
         qDebug() << "[Error] Invalid method";
+}
+
+QMap<QString, QString> SimpleServer::getArgsFromString(QString str) {
+    int start_idx = str.indexOf('?');
+    if (start_idx != -1)
+        str = str.mid(start_idx + 1);
+
+    QStringList var_list = str.split("&");
+    QMap<QString, QString> vars;
+
+    if (str == "" || str.startsWith("/")) return vars;
+
+    qDebug() << "Body variables:";
+    for (QString it : var_list) {
+        QStringList temp = it.split("=");
+        vars[temp[0]] = temp[1];
+        qDebug() << temp[0] << " : " << temp[1];
+    }
+
+    return vars;
 }
 
 void SimpleServer::doResponse(int code, QString text, QTcpSocket *socket) {

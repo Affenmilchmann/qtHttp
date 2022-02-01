@@ -9,12 +9,26 @@ QString dataBase::getById(int id){
         return "";
 }
 
-void dataBase::add(QString value){
+int dataBase::add(QString value){
     db[last_id++] = value;
+    return last_id - 1;
 }
 
-void dataBase::deleteById(int id){
+QString dataBase::edit(int id, QString value) {
+    if (db.contains(id)) {
+        db[id] = value;
+        return value;
+    }
+    else
+        return "";
+}
+
+bool dataBase::deleteById(int id){
+    if (!db.contains(id)) return false;
+
     db.remove(id);
+
+    return true;
 }
 
 QString dataBase::formHtmlData(){

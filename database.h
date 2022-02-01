@@ -9,8 +9,9 @@ public:
     dataBase();
 
     QString getById(int id);
-    void add(QString value);
-    void deleteById(int id);
+    int add(QString value);
+    QString edit(int id, QString value);
+    bool deleteById(int id);
 
     QString formHtmlData();
 
