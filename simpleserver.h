@@ -13,7 +13,7 @@ class SimpleServer : public QTcpServer
     Q_OBJECT
 public:
     explicit SimpleServer(QObject *parent = 0);
-
+    // all methods are descripted in .cpp file
     void incomingConnection(qintptr handle);
 
 public slots:
@@ -21,6 +21,7 @@ public slots:
     void onDisconnected();
 
 private:
+    // our little "data base" which is stored in RAM
     dataBase db;
 
     void apiHandler(QMap<QString, QString> *data, QTcpSocket *socket);
